@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database import get_db
 from tabelas import Jogador
@@ -7,7 +8,6 @@ from tabelas import Jogador
 class JogadorEntrada(BaseModel):
     nome: str
     posicao: str
-    
 class JogadorSaida(JogadorEntrada):
     id: int
 
@@ -17,14 +17,10 @@ app = FastAPI()
 
 @app.get("/jogadores/")
 def listar_jogadores(posicao: str | None = None, banco: Session = Depends(get_db)) -> list[JogadorSaida]:
-    jogadores = banco.query(Jogador).all()
+    consulta = banco.query(Jogador)
     if posicao is None:
-        return jogadores
-    resultado = []
-    for j in jogadores:
-        if j.posicao.lower() == posicao.lower():
-            resultado.append(j)
-    return resultado
+        return consulta.all()
+    return consulta.filter(func.lower(Jogador.posicao) == posicao.lower()).all()
 
 @app.get("/jogadores/{jogador_id}")
 def ver_jogador(jogador_id: int, banco: Session = Depends(get_db)) -> JogadorSaida | None:
